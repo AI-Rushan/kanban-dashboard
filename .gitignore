@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Бэкапы данных — личные данные, не должны попадать в репо
+kanban_backup_*.json
+
+# Временные файлы редакторов
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Логи
+*.log

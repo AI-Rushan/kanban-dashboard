@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Канбан — Рушан</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#eef0f4;color:#1a1a2e;min-height:100vh;overflow-x:hidden}
+
+/* ── HEADER ── */
+header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.logo{font-size:18px;font-weight:700;letter-spacing:-.3px}
+.hdate{font-size:12px;opacity:.55;margin-top:2px}
+.hstats{display:flex;gap:20px}
+.hstat{text-align:center}
+.hstat .n{font-size:22px;font-weight:700}
+.hstat .l{font-size:10px;opacity:.55;text-transform:uppercase;letter-spacing:.5px}
+
+/* ── TOOLBAR ── */
+.toolbar{padding:12px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border-bottom:1px solid #e0e0e0}
+.filter-chip{padding:5px 13px;border-radius:20px;border:1.5px solid #ddd;font-size:12.5px;cursor:pointer;background:#fff;transition:all .15s;white-space:nowrap;user-select:none}
+.filter-chip:hover{border-color:#888}
+.filter-chip.active{background:#1a1a2e;color:#fff;border-color:#1a1a2e}
+.filter-chip .chip-edit{display:none;margin-left:3px;font-size:10px;opacity:.6;line-height:1;vertical-align:middle}
+.filter-chip:hover .chip-edit{display:inline}
+.toolbar-right{margin-left:auto;display:flex;gap:8px}
+
+/* ── PER-COLUMN SORT ICONS ── */
+.col-head-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.col-sort-icons{display:flex;gap:3px}
+.sort-icon{border:none;background:rgba(0,0,0,.06);border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;transition:all .15s;position:relative;color:#666}
+.sort-icon:hover{background:rgba(0,0,0,.13)}
+.sort-icon.active{background:#1a1a2e;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sort-icon .dir{position:absolute;bottom:0;right:0;font-size:8px;line-height:1;background:#0066cc;color:#fff;border-radius:3px;padding:0 2px;display:none}
+.sort-icon.active .dir{display:block}
+.btn-add{background:#0066cc;color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn-add:hover{background:#0052a3}
+.btn-icon{background:#fff;color:#555;border:1.5px solid #ddd;border-radius:8px;padding:6px 9px;font-size:16px;cursor:pointer;line-height:1;text-decoration:none;display:inline-flex;align-items:center}
+.btn-icon:hover{border-color:#888;color:#333}
+
+/* ── KANBAN BOARD ── */
+.board{display:flex;gap:16px;padding:20px 24px;min-height:calc(100vh - 130px);align-items:flex-start;overflow-x:auto}
+.column{flex:1;min-width:280px;max-width:380px;background:#e4e6ea;border-radius:12px;display:flex;flex-direction:column;min-height:200px}
+.col-head{padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.col-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#555}
+.col-subtitle{font-size:11px;color:#aaa;margin-top:2px;font-weight:400;text-transform:none;letter-spacing:0}
+.col-count{background:#fff;color:#555;border-radius:12px;padding:1px 9px;font-size:12px;font-weight:600}
+.col-head.backlog .col-title{color:#94a3b8}
+.col-head.todo .col-title{color:#6366f1}
+.col-head.doing .col-title{color:#d97706}
+.col-head.done .col-title{color:#059669}
+.col-body{padding:0 8px 12px;flex:1;display:flex;flex-direction:column;gap:8px}
+.col-body.drag-over{background:rgba(0,102,204,.08);border-radius:8px}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 2px rgba(0,0,0,.07);cursor:grab;transition:box-shadow .15s,transform .15s;position:relative;border-left:3px solid transparent}
+.card:active{cursor:grabbing}
+.card.dragging{opacity:.5;transform:rotate(1.5deg);box-shadow:0 6px 20px rgba(0,0,0,.15)}
+.card:hover{box-shadow:0 3px 10px rgba(0,0,0,.12)}
+
+.card-area{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;margin-bottom:7px;opacity:.85}
+.card-text{font-size:13.5px;line-height:1.45;color:#1a1a2e;word-break:break-word}
+.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:9px;gap:8px}
+.card-deadline{display:flex;align-items:center;gap:4px;font-size:11.5px;color:#888;cursor:pointer;padding:2px 6px;border-radius:6px;border:1px dashed #ddd;transition:all .15s}
+.card-deadline:hover{border-color:#0066cc;color:#0066cc}
+.card-deadline.overdue{color:#dc2626;border-color:#dc2626;background:#fff5f5}
+.card-deadline.today{color:#d97706;border-color:#d97706;background:#fffbeb}
+.card-deadline.soon{color:#0066cc;border-color:#0066cc;background:#eff6ff}
+.card-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.card:hover .card-actions{opacity:1}
+.card-btn{border:none;background:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:4px;color:#999;line-height:1}
+.card-btn:hover{background:#f0f0f0;color:#333}
+
+/* area colors — inline via JS */
+.btn-area{background:#f5f5f5;color:#555;border:1.5px solid #ddd;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.btn-area:hover{border-color:#0066cc;color:#0066cc}
+.area-swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent;flex-shrink:0;transition:border-color .15s}
+.area-swatch:hover{opacity:.85}
+.area-swatch.active{border-color:#1a1a2e}
+
+/* ── ADD CARD in column ── */
+.btn-add-card{margin:0 8px 8px;background:none;border:1.5px dashed #ccc;border-radius:8px;padding:8px;font-size:13px;color:#999;cursor:pointer;text-align:left;transition:all .15s}
+.btn-add-card:hover{border-color:#0066cc;color:#0066cc;background:#f5f9ff}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.overlay.hidden{display:none}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:440px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h2{font-size:17px;font-weight:700;margin-bottom:18px}
+.form-group{margin-bottom:14px}
+.form-group label{font-size:12px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px}
+.form-group textarea,.form-group select,.form-group input[type=date]{width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;resize:vertical}
+.form-group textarea:focus,.form-group select:focus,.form-group input[type=date]:focus{border-color:#0066cc}
+.form-group textarea{min-height:80px}
+.form-actions{display:flex;gap:10px;margin-top:20px}
+.btn-save{flex:1;background:#0066cc;color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-save:hover{background:#0052a3}
+.btn-cancel{background:#f0f0f0;color:#555;border:none;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer}
+.btn-cancel:hover{background:#e0e0e0}
+.btn-delete{background:#fff0f0;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:14px;cursor:pointer}
+.btn-delete:hover{background:#fee2e2}
+
+/* ── COMPLETED AT ── */
+.card-completed{display:flex;align-items:center;gap:4px;font-size:11px;color:#aaa;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0}
+.card-completed.late{color:#dc2626}
+.card-completed.ontime{color:#059669}
+
+/* ── DESCRIPTION ── */
+.card-desc-toggle{display:flex;align-items:center;gap:4px;font-size:11px;color:#94a3b8;cursor:pointer;margin-top:6px;padding:3px 0;user-select:none;transition:color .15s}
+.card-desc-toggle:hover{color:#0066cc}
+.card-desc-body{font-size:12px;color:#475569;line-height:1.55;margin-top:4px;padding:8px 10px;background:#f8fafc;border-radius:6px;border-left:3px solid #e2e8f0;white-space:pre-wrap;word-break:break-word}
+.card-desc-body a{color:#0066cc;text-decoration:none}
+.card-desc-body a:hover{text-decoration:underline}
+
+/* ── DEADLINE TIME ── */
+.deadline-time{font-size:10px;opacity:.8;margin-left:2px}
+
+/* ── EMPTY STATE ── */
+.empty-col{text-align:center;padding:24px 16px;color:#bbb;font-size:13px}
+
+/* ── NOTIFICATION BADGE ── */
+.notif-badge{background:#dc2626;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px}
+
+/* ── GCAL ── */
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.btn-icon.syncing{animation:spin 1s linear infinite}
+.gcal-info-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:14px}
+.gcal-error-box{background:#fff5f5;border:1px solid #fca5a5;border-radius:8px;padding:12px 14px;margin-bottom:14px}
+.gcal-hint{font-size:11px;color:#aaa;margin-top:5px;line-height:1.5}
+.gcal-section{padding-top:4px}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">📋 Мои задачи</div>
+    <div class="hdate" id="dateLabel"></div>
+  </div>
+  <div class="hstats">
+    <div class="hstat"><div class="n" id="sBacklog">0</div><div class="l">Поток задач</div></div>
+    <div class="hstat"><div class="n" id="sTodo">0</div><div class="l">Спринт</div></div>
+    <div class="hstat"><div class="n" id="sDoing">0</div><div class="l">В работе</div></div>
+    <div class="hstat"><div class="n" id="sDone">0</div><div class="l">Сделано</div></div>
+    <div class="hstat"><div class="n" id="sOverdue" style="color:#f87171">0</div><div class="l">Просрочено</div></div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div id="filterChips" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"></div>
+  <div class="toolbar-right">
+    <button class="btn-area" onclick="openAreaModal()" title="Добавить направление">＋ Направление</button>
+    <button class="btn-add" onclick="openModal()">＋ Добавить задачу</button>
+    <a class="btn-icon" href="archive.html" title="Архив задач">📦</a>
+    <button class="btn-icon" id="btnNotif" title="Уведомления о дедлайнах">🔔</button>
+    <button class="btn-icon" title="Экспорт данных в файл" onclick="exportData()">📤</button>
+    <label class="btn-icon" title="Импорт данных из файла" style="cursor:pointer">📥<input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImportFile(this)"></label>
+    <button class="btn-icon" id="btnGcalSettings" title="Настройки Google Calendar" onclick="openGcalSettings()">📅</button>
+    <button class="btn-icon" id="btnSync" title="Синхронизировать с Google Calendar" onclick="syncFull()" style="display:none">🔄</button>
+  </div>
+</div>
+
+<div class="board">
+  <div class="column" id="col-backlog">
+    <div class="col-head backlog">
+      <div><span class="col-title">📥 Поток задач</span><div class="col-subtitle">Всё, что придумал — бэклог</div></div>
+      <div class="col-head-right">
+        <div class="col-sort-icons">
+          <button class="sort-icon" data-col="backlog" data-by="deadline" title="По дедлайну">📅<span class="dir">↑</span></button>
+          <button class="sort-icon" data-col="backlog" data-by="area" title="По направлению">🏷</button>
+        </div>
+        <span class="col-count" id="cnt-backlog">0</span>
+      </div>
+    </div>
+    <div class="col-body" id="body-backlog" data-status="backlog"></div>
+    <button class="btn-add-card" onclick="openModal('backlog')">＋ Добавить</button>
+  </div>
+  <div class="column" id="col-todo">
+    <div class="col-head todo">
+      <div><span class="col-title">◻ Спринт</span><div class="col-subtitle">Беру в работу на этой неделе</div></div>
+      <div class="col-head-right">
+        <div class="col-sort-icons">
+          <button class="sort-icon" data-col="todo" data-by="deadline" title="По дедлайну">📅<span class="dir">↑</span></button>
+          <button class="sort-icon" data-col="todo" data-by="area" title="По направлению">🏷</button>
+        </div>
+        <span class="col-count" id="cnt-todo">0</span>
+      </div>
+    </div>
+    <div class="col-body" id="body-todo" data-status="todo"></div>
+    <button class="btn-add-card" onclick="openModal('todo')">＋ Добавить</button>
+  </div>
+  <div class="column" id="col-doing">
+    <div class="col-head doing">
+      <div><span class="col-title">▶ В работе</span><div class="col-subtitle">Делаю прямо сейчас</div></div>
+      <div class="col-head-right">
+        <div class="col-sort-icons">
+          <button class="sort-icon" data-col="doing" data-by="deadline" title="По дедлайну">📅<span class="dir">↑</span></button>
+          <button class="sort-icon" data-col="doing" data-by="area" title="По направлению">🏷</button>
+        </div>
+        <span class="col-count" id="cnt-doing">0</span>
+      </div>
+    </div>
+    <div class="col-body" id="body-doing" data-status="doing"></div>
+    <button class="btn-add-card" onclick="openModal('doing')">＋ Добавить</button>
+  </div>
+  <div class="column" id="col-done">
+    <div class="col-head done">
+      <div><span class="col-title">✓ Сделано</span><div class="col-subtitle">Завершённые задачи</div></div>
+      <div class="col-head-right">
+        <div class="col-sort-icons">
+          <button class="sort-icon" data-col="done" data-by="deadline" title="По дедлайну">📅<span class="dir">↑</span></button>
+          <button class="sort-icon" data-col="done" data-by="area" title="По направлению">🏷</button>
+          <button class="sort-icon" data-col="done" data-by="completedAt" title="По дате завершения">✅<span class="dir">↑</span></button>
+        </div>
+        <span class="col-count" id="cnt-done">0</span>
+      </div>
+    </div>
+    <div class="col-body" id="body-done" data-status="done"></div>
+    <button class="btn-add-card" onclick="openModal('done')">＋ Добавить</button>
+  </div>
+</div>
+
+<!-- AREA MODAL -->
+<div class="overlay hidden" id="area-overlay">
+  <div class="modal" style="max-width:380px">
+    <h2 id="areModalTitle">Новое направление</h2>
+    <div class="form-group" style="display:flex;gap:12px;align-items:flex-end">
+      <div style="flex:0 0 auto">
+        <label>Эмодзи</label>
+        <input type="text" id="aEmoji" maxlength="2" placeholder="🎯"
+               style="font-size:26px;text-align:center;width:58px;padding:6px;border:1.5px solid #e0e0e0;border-radius:8px;outline:none"/>
+      </div>
+      <div style="flex:1">
+        <label>Название</label>
+        <input type="text" id="aLabel" placeholder="Моё направление"
+               style="width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Цвет</label>
+      <div id="area-swatches" style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeAreaModal()">Отмена</button>
+      <button class="btn-delete hidden" id="btnAreaDelete" onclick="deleteArea()">🗑 Удалить</button>
+      <button class="btn-save" onclick="saveArea()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- GCAL SETTINGS MODAL -->
+<div class="overlay hidden" id="gcal-overlay">
+  <div class="modal" style="max-width:440px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <h2 style="margin:0">📅 Google Calendar</h2>
+      <button onclick="closeGcalSettings()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#aaa;line-height:1">✕</button>
+    </div>
+
+    <!-- Глобальное сообщение об ошибке / успехе -->
+    <div id="gcal-msg" style="display:none;font-size:12.5px;padding:8px 12px;border-radius:8px;margin-bottom:14px"></div>
+
+    <!-- Секция 1: Ввод Client ID и авторизация -->
+    <div id="gcal-setup" class="gcal-section">
+      <p style="font-size:13px;color:#555;margin-bottom:14px;line-height:1.55">
+        Синхронизируй задачи с Google Calendar. Все события из выбранного календаря
+        появятся в Бэклоге. Задачи с дедлайном создадут события в календаре.
+      </p>
+      <div class="form-group">
+        <label>Client ID <span style="font-weight:400;text-transform:none;color:#aaa">(из Google Cloud Console)</span></label>
+        <input type="text" id="gcalClientId" placeholder="123456789-abc.apps.googleusercontent.com"
+               style="width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s"
+               onfocus="this.style.borderColor='#0066cc'" onblur="this.style.borderColor='#e0e0e0'"/>
+        <div class="gcal-hint">
+          Google Cloud Console → APIs &amp; Services → Credentials → OAuth 2.0 Client IDs.<br>
+          В «Authorized JavaScript origins» добавь <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px">http://localhost</code> (или адрес, откуда открываешь файл).<br>
+          ⚠ Файл нужно открывать через <strong>http://localhost</strong>, не через file://.
+        </div>
+      </div>
+      <div class="form-actions" style="margin-top:6px">
+        <button class="btn-cancel" onclick="closeGcalSettings()">Закрыть</button>
+        <button class="btn-save" id="btnGcalConnect" onclick="gcalConnect()">Подключить Google →</button>
+      </div>
+    </div>
+
+    <!-- Секция 2: Выбор календаря -->
+    <div id="gcal-cal-select" class="gcal-section" style="display:none">
+      <div class="gcal-info-box">
+        <div style="font-size:13px;font-weight:600;color:#059669">✓ Авторизация успешна</div>
+        <div style="font-size:12px;color:#555;margin-top:3px">Выбери, с каким календарём синхронизировать задачи</div>
+      </div>
+      <div class="form-group">
+        <label>Календарь</label>
+        <select id="gcalCalSelect" style="width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none">
+          <option value="">Загружаем список…</option>
+        </select>
+      </div>
+      <div class="form-actions" style="margin-top:6px">
+        <button class="btn-cancel" onclick="gcalGoBack()">← Назад</button>
+        <button class="btn-save" onclick="gcalSaveCalendar()">Использовать этот →</button>
+      </div>
+    </div>
+
+    <!-- Секция 3: Подключено -->
+    <div id="gcal-status" class="gcal-section" style="display:none">
+      <div class="gcal-info-box">
+        <div style="font-size:13px;font-weight:600;color:#059669">✓ Подключено</div>
+        <div style="font-size:12px;color:#333;margin-top:4px">Календарь: <strong id="gcal-calname"></strong></div>
+        <div style="font-size:11px;color:#888;margin-top:3px" id="gcal-lastsync"></div>
+      </div>
+      <div style="font-size:12.5px;color:#555;margin-bottom:14px;line-height:1.5">
+        При синхронизации:<br>
+        • События из календаря (32 дня) → Бэклог<br>
+        • Задачи с дедлайном → события в календаре<br>
+        • Повторяющиеся события разворачиваются
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="gcalDisconnect()">Отключить</button>
+        <button class="btn-cancel" onclick="gcalGoBack()" style="border:1.5px solid #ddd">Сменить Client ID</button>
+        <button class="btn-save" onclick="syncFull()">🔄 Синхронизировать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Новая задача</h2>
+    <div class="form-group">
+      <label>Задача</label>
+      <textarea id="fText" placeholder="Опишите задачу..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Направление</label>
+      <select id="fArea">
+        <option value="1">🔍 Поиск работы</option>
+        <option value="2">👩‍⚕️ Мама / Врачи</option>
+        <option value="3">🏠 Дом</option>
+        <option value="4">🧠 Обучение ИИ</option>
+        <option value="5">🚀 Пет-проект</option>
+        <option value="6">💼 Бизнес / Консалтинг</option>
+        <option value="7">🌿 Покупка дачи</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Срок (дедлайн)</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="date" id="fDeadline" style="flex:1"/>
+        <input type="time" id="fDeadlineTime" style="width:110px;border:1.5px solid #e0e0e0;border-radius:8px;padding:9px 10px;font-size:14px;font-family:inherit;outline:none" title="Время дедлайна (необязательно)"/>
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:4px">Время — необязательно. Оставь пустым если важен только день.</div>
+    </div>
+    <div class="form-group">
+      <label>Описание / Заметки</label>
+      <textarea id="fDesc" placeholder="Ссылка на встречу, повестка, файлы, любые заметки..." style="min-height:70px"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Статус</label>
+      <select id="fStatus">
+        <option value="backlog">Поток задач</option>
+        <option value="todo">Спринт</option>
+        <option value="doing">В работе</option>
+        <option value="done">Сделано</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+      <button class="btn-delete hidden" id="btnDelete" onclick="deleteTask()">🗑 Удалить</button>
+      <button class="btn-save" onclick="saveTask()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── AREAS ──
+const PALETTE = [
+  {border:'#6366f1',bg:'#ede9fe',text:'#4f46e5'},
+  {border:'#ec4899',bg:'#fce7f3',text:'#be185d'},
+  {border:'#14b8a6',bg:'#ccfbf1',text:'#0f766e'},
+  {border:'#f59e0b',bg:'#fef3c7',text:'#b45309'},
+  {border:'#8b5cf6',bg:'#ede9fe',text:'#6d28d9'},
+  {border:'#10b981',bg:'#d1fae5',text:'#065f46'},
+  {border:'#84cc16',bg:'#ecfccb',text:'#3f6212'},
+  {border:'#3b82f6',bg:'#dbeafe',text:'#1d4ed8'},
+  {border:'#f97316',bg:'#ffedd5',text:'#c2410c'},
+  {border:'#06b6d4',bg:'#cffafe',text:'#0e7490'},
+  {border:'#ef4444',bg:'#fee2e2',text:'#b91c1c'},
+  {border:'#64748b',bg:'#f1f5f9',text:'#334155'},
+];
+
+const DEFAULT_AREAS = {
+  1:{emoji:'🔍',label:'Поиск работы',  ...PALETTE[0]},
+  2:{emoji:'👩‍⚕️',label:'Мама / Врачи', ...PALETTE[1]},
+  3:{emoji:'🏠',label:'Дом',           ...PALETTE[2]},
+  4:{emoji:'🧠',label:'Обучение ИИ',   ...PALETTE[3]},
+  5:{emoji:'🚀',label:'Пет-проект',    ...PALETTE[4]},
+  6:{emoji:'💼',label:'Бизнес',        ...PALETTE[5]},
+  7:{emoji:'🌿',label:'Дача',          ...PALETTE[6]},
+};
+
+function loadAreas(){
+  const stored = localStorage.getItem('areas_v1');
+  if(stored){
+    // migrate: add color if missing (old entries without border/bg/text)
+    const a = JSON.parse(stored);
+    Object.values(a).forEach((v,i)=>{
+      if(!v.border){ const p=PALETTE[i%PALETTE.length]; v.border=p.border; v.bg=p.bg; v.text=p.text; }
+    });
+    return a;
+  }
+  return JSON.parse(JSON.stringify(DEFAULT_AREAS));
+}
+function saveAreas(){ localStorage.setItem('areas_v1', JSON.stringify(AREAS)); }
+let AREAS = loadAreas();
+
+// ── DATA ──
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+
+function loadTasks(){
+  // migrate from tasks_v1
+  const old = localStorage.getItem('tasks_v1');
+  const cur = localStorage.getItem('tasks_v2');
+  if(cur){
+    const tasks = JSON.parse(cur);
+    // migrate: add gcalEventId + lastModified if missing
+    let migrated = false;
+    tasks.forEach(t=>{
+      if(t.gcalEventId===undefined){ t.gcalEventId=null; migrated=true; }
+      if(!t.lastModified){ t.lastModified=t.createdAt||Date.now(); migrated=true; }
+    });
+    if(migrated) localStorage.setItem('tasks_v2', JSON.stringify(tasks));
+    return tasks;
+  }
+  if(old){
+    const v1 = JSON.parse(old);
+    const tasks = [];
+    Object.entries(v1).forEach(([areaId,cols])=>{
+      ['todo','doing','done'].forEach(status=>{
+        (cols[status]||[]).forEach(text=>{
+          const now = Date.now();
+          tasks.push({id:uid(),area:parseInt(areaId),text,status,deadline:null,gcalEventId:null,lastModified:now,createdAt:now});
+        });
+      });
+    });
+    saveTasks(tasks);
+    return tasks;
+  }
+  return [];
+}
+
+function saveTasks(tasks){
+  localStorage.setItem('tasks_v2', JSON.stringify(tasks));
+}
+
+let tasks = loadTasks();
+let activeFilter = 'all';
+let editingId = null;
+let dragId = null;
+
+// per-column sort state: { by: 'none'|'deadline'|'area'|'completedAt', dir: 'asc'|'desc' }
+const colSort = {
+  backlog: { by: 'none', dir: 'asc' },
+  todo:    { by: 'none', dir: 'asc' },
+  doing:   { by: 'none', dir: 'asc' },
+  done:    { by: 'none', dir: 'asc' },
+};
+
+function sortedList(list, col){
+  const s = colSort[col];
+  if(!s || s.by === 'none') return list;
+  const arr = [...list];
+  if(s.by === 'deadline'){
+    arr.sort((a,b)=>{
+      if(!a.deadline && !b.deadline) return 0;
+      if(!a.deadline) return 1;
+      if(!b.deadline) return -1;
+      const cmp = a.deadline < b.deadline ? -1 : a.deadline > b.deadline ? 1 : 0;
+      return s.dir === 'asc' ? cmp : -cmp;
+    });
+  }
+  if(s.by === 'area'){
+    arr.sort((a,b)=> a.area - b.area);
+  }
+  if(s.by === 'completedAt'){
+    arr.sort((a,b)=>{
+      if(!a.completedAt && !b.completedAt) return 0;
+      if(!a.completedAt) return 1;
+      if(!b.completedAt) return -1;
+      const cmp = a.completedAt < b.completedAt ? -1 : a.completedAt > b.completedAt ? 1 : 0;
+      return s.dir === 'asc' ? cmp : -cmp;
+    });
+  }
+  return arr;
+}
+
+// ── DATE HELPERS ──
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+function todayStr(){ return TODAY.toISOString().slice(0,10); }
+
+function deadlineDt(dl, dlTime){
+  // возвращает Date для дедлайна с учётом времени
+  if(!dl) return null;
+  return dlTime ? new Date(dl+'T'+dlTime+':00') : new Date(dl+'T23:59:59');
+}
+
+function dateStatus(dl, compareTo, dlTime){
+  // compareTo: 'YYYY-MM-DD' string or null (defaults to now/today)
+  if(!dl) return null;
+  const deadline = deadlineDt(dl, dlTime);
+  let ref;
+  if(compareTo){
+    ref = new Date(compareTo+'T00:00:00');
+  } else {
+    ref = dlTime ? new Date() : TODAY;
+  }
+  const diffMs = deadline - ref;
+  const diffDays = Math.ceil(diffMs / (1000*60*60*24));
+  if(diffMs < 0) return 'overdue';
+  if(diffDays === 0) return 'today';
+  if(diffDays <= 3) return 'soon';
+  return 'normal';
+}
+
+function fmtDate(dl){
+  if(!dl) return '';
+  const [y,m,d] = dl.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+function deadlineLabel(dl, dlTime){
+  const s = dateStatus(dl, null, dlTime);
+  if(!s) return '';
+  const deadline = deadlineDt(dl, dlTime);
+  const diffDays = Math.ceil((deadline - (dlTime ? new Date() : TODAY)) / (1000*60*60*24));
+  const timeStr = dlTime ? `<span class="deadline-time">${dlTime}</span>` : '';
+  if(s==='overdue') return `⚠ просрочено ${fmtDate(dl)}${dlTime?' '+dlTime:''}`;
+  if(s==='today')   return `🔥 сегодня${dlTime?' до '+dlTime:''}`;
+  if(s==='soon')    return `⏰ через ${diffDays}д${dlTime?' в '+dlTime:''}`;
+  return `📅 ${fmtDate(dl)}${dlTime?' '+dlTime:''}`;
+}
+
+// ── RENDER ──
+function activeTasks(){
+  // всё кроме архива
+  return tasks.filter(t=>t.status!=='archive');
+}
+function filteredTasks(){
+  const active = activeTasks();
+  if(activeFilter==='all') return active;
+  return active.filter(t=>t.area===parseInt(activeFilter));
+}
+
+function render(){
+  const ft = filteredTasks();
+  const byStatus = {backlog:[],todo:[],doing:[],done:[]};
+  ft.forEach(t=>{ if(byStatus[t.status]) byStatus[t.status].push(t); });
+
+  ['backlog','todo','doing','done'].forEach(status=>{
+    const body = document.getElementById('body-'+status);
+    const cnt = document.getElementById('cnt-'+status);
+    const list = sortedList(byStatus[status], status);
+    cnt.textContent = list.length;
+    if(!list.length){
+      body.innerHTML = '<div class="empty-col">Нет задач</div>';
+    } else {
+      body.innerHTML = list.map(t=>cardHTML(t)).join('');
+    }
+  });
+
+  // stats (без архива)
+  const all = activeTasks();
+  document.getElementById('sBacklog').textContent = all.filter(t=>t.status==='backlog').length;
+  document.getElementById('sTodo').textContent = all.filter(t=>t.status==='todo').length;
+  document.getElementById('sDoing').textContent = all.filter(t=>t.status==='doing').length;
+  document.getElementById('sDone').textContent = all.filter(t=>t.status==='done').length;
+  const overdue = all.filter(t=>t.deadline && t.status!=='done' && dateStatus(t.deadline)==='overdue').length;
+  document.getElementById('sOverdue').textContent = overdue;
+
+  bindDrag();
+}
+
+function linkify(text){
+  // делает URL кликабельными
+  return esc(text).replace(
+    /(https?:\/\/[^\s<>"]+)/g,
+    '<a href="$1" target="_blank" rel="noopener">$1</a>'
+  );
+}
+
+function cardHTML(t){
+  const a = AREAS[t.area]||{emoji:'',label:'',border:'#ccc',bg:'#f5f5f5',text:'#666'};
+  const isDone = t.status === 'done';
+
+  // deadline badge — for done cards compare to completedAt, not today
+  const ds = isDone
+    ? (t.deadline && t.completedAt ? dateStatus(t.deadline, t.completedAt) : null)
+    : dateStatus(t.deadline, null, t.deadlineTime);
+  const dlClass = ds && ds!=='normal' ? ds : '';
+  const dlText = t.deadline ? deadlineLabel(t.deadline, t.deadlineTime) : '+ срок';
+  const deadlineClickable = !isDone; // нельзя редактировать срок у завершённых
+
+  // completedAt row (только для done)
+  let completedRow = '';
+  if(isDone && t.completedAt){
+    const late = t.deadline && dateStatus(t.deadline, t.completedAt) === 'overdue';
+    const cls = late ? 'late' : 'ontime';
+    const label = late
+      ? `⚠ завершено с опозданием — ${fmtDate(t.completedAt)}`
+      : `✓ завершено ${fmtDate(t.completedAt)}`;
+    completedRow = `<div class="card-completed ${cls}">${label}</div>`;
+  }
+
+  // description block
+  let descRow = '';
+  if(t.description && t.description.trim()){
+    const short = t.description.length > 80;
+    const preview = short ? esc(t.description.slice(0,80))+'…' : '';
+    descRow = `<div class="card-desc-toggle" onclick="toggleDesc(event,'${t.id}')">
+      📎 <span id="desc-label-${t.id}">${short?'Показать описание':'Описание'}</span>
+    </div>
+    <div class="card-desc-body" id="desc-body-${t.id}" style="display:none">${linkify(t.description)}</div>`;
+  }
+
+  return `<div class="card" style="border-left-color:${a.border}" draggable="true" data-id="${t.id}">
+    <div class="card-area" style="background:${a.bg};color:${a.text}">${a.emoji} ${a.label}</div>
+    <div class="card-text">${esc(t.text)}</div>
+    <div class="card-footer">
+      ${deadlineClickable
+        ? `<span class="card-deadline ${dlClass}" onclick="openModal(null,'${t.id}')" title="Изменить срок">${dlText}</span>`
+        : (t.deadline ? `<span class="card-deadline ${dlClass}" title="Плановый срок">${dlText}</span>` : '<span></span>')
+      }
+      <div class="card-actions">
+        <button class="card-btn" onclick="moveCard('${t.id}','prev')" title="← Назад">←</button>
+        <button class="card-btn" onclick="moveCard('${t.id}','next')" title="→ Вперёд">→</button>
+        <button class="card-btn" onclick="openModal(null,'${t.id}')" title="Редактировать">✏</button>
+      </div>
+    </div>
+    ${completedRow}
+    ${descRow}
+  </div>`;
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toggleDesc(e, id){
+  e.stopPropagation();
+  const body  = document.getElementById('desc-body-'+id);
+  const label = document.getElementById('desc-label-'+id);
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display  = open ? 'none' : 'block';
+  label.textContent   = open ? 'Показать описание' : 'Скрыть описание';
+}
+
+// ── DRAG & DROP ──
+function bindDrag(){
+  document.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('dragstart',e=>{
+      dragId = card.dataset.id;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    card.addEventListener('dragend',()=>{ card.classList.remove('dragging'); });
+  });
+  document.querySelectorAll('.col-body').forEach(col=>{
+    col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drag-over');});
+    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
+    col.addEventListener('drop',e=>{
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      if(!dragId) return;
+      const newStatus = col.dataset.status;
+      const task = tasks.find(t=>t.id===dragId);
+      if(task){
+        const wasNotDone = task.status !== 'done';
+        task.status = newStatus;
+        task.lastModified = Date.now();
+        if(newStatus === 'done' && wasNotDone) task.completedAt = todayStr();
+        if(newStatus !== 'done') task.completedAt = null;
+        saveTasks(tasks); render();
+      }
+      dragId=null;
+    });
+  });
+}
+
+// ── MOVE BUTTONS ──
+const ORDER = ['backlog','todo','doing','done'];
+function moveCard(id,dir){
+  const t = tasks.find(t=>t.id===id);
+  if(!t) return;
+  const idx = ORDER.indexOf(t.status);
+  const next = dir==='next'?idx+1:idx-1;
+  if(next<0||next>=ORDER.length) return;
+  const newStatus = ORDER[next];
+  const wasNotDone = t.status !== 'done';
+  t.status = newStatus;
+  t.lastModified = Date.now();
+  if(newStatus === 'done' && wasNotDone) t.completedAt = todayStr();
+  if(newStatus !== 'done') t.completedAt = null;
+  saveTasks(tasks); render();
+}
+
+// ── TOOLBAR: filter chips + modal select ──
+function renderToolbar(){
+  const fc = document.getElementById('filterChips');
+  fc.innerHTML = `<button class="filter-chip${activeFilter==='all'?' active':''}" data-area="all">Все</button>`
+    + Object.entries(AREAS).map(([id,a])=>
+        `<button class="filter-chip${activeFilter===id?' active':''}" data-area="${id}">${a.emoji} ${a.label}<span class="chip-edit" data-edit-area="${id}" title="Редактировать направление">✎</span></button>`
+      ).join('');
+
+  // modal select
+  const sel = document.getElementById('fArea');
+  const prev = sel.value;
+  sel.innerHTML = Object.entries(AREAS).map(([id,a])=>
+    `<option value="${id}">${a.emoji} ${a.label}</option>`
+  ).join('');
+  if(AREAS[prev]) sel.value = prev;
+}
+
+// ── FILTER (event delegation on #filterChips) ──
+document.getElementById('filterChips').addEventListener('click', e=>{
+  // клик по иконке ✎ — открыть редактирование направления
+  const editBtn = e.target.closest('.chip-edit');
+  if(editBtn){ e.stopPropagation(); openAreaModal(editBtn.dataset.editArea); return; }
+
+  const btn = e.target.closest('.filter-chip');
+  if(!btn) return;
+  document.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = btn.dataset.area;
+  render();
+});
+
+// ── SORT (per-column icons) ──
+document.querySelectorAll('.sort-icon').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const col = btn.dataset.col;
+    const by  = btn.dataset.by;
+    const s   = colSort[col];
+    if(s.by === by){
+      // same icon clicked → toggle direction (only for deadline & completedAt)
+      if(by === 'deadline' || by === 'completedAt'){
+        s.dir = s.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        // area has no direction — deactivate
+        s.by = 'none';
+      }
+    } else {
+      s.by = by;
+      s.dir = 'asc';
+    }
+    // update active state & arrow for all icons in this column
+    document.querySelectorAll(`.sort-icon[data-col="${col}"]`).forEach(b=>{
+      const active = b.dataset.by === s.by;
+      b.classList.toggle('active', active);
+      const dirEl = b.querySelector('.dir');
+      if(dirEl) dirEl.textContent = s.dir === 'asc' ? '↑' : '↓';
+    });
+    render();
+  });
+});
+
+// ── AREA MODAL ──
+let editingAreaId = null;
+let selectedPaletteIdx = 0;
+
+function renderSwatches(){
+  const container = document.getElementById('area-swatches');
+  container.innerHTML = PALETTE.map((p,i)=>
+    `<div class="area-swatch${selectedPaletteIdx===i?' active':''}" data-idx="${i}"
+          style="background:${p.border}" title="${p.border}"
+          onclick="selectSwatch(${i})"></div>`
+  ).join('');
+}
+
+function selectSwatch(idx){
+  selectedPaletteIdx = idx;
+  document.querySelectorAll('.area-swatch').forEach((el,i)=>
+    el.classList.toggle('active', i===idx)
+  );
+}
+
+function openAreaModal(id){
+  editingAreaId = id||null;
+  const title = document.getElementById('areModalTitle');
+  const btnDel = document.getElementById('btnAreaDelete');
+  if(id && AREAS[id]){
+    const a = AREAS[id];
+    title.textContent = 'Редактировать направление';
+    document.getElementById('aEmoji').value = a.emoji||'';
+    document.getElementById('aLabel').value = a.label||'';
+    selectedPaletteIdx = PALETTE.findIndex(p=>p.border===a.border);
+    if(selectedPaletteIdx<0) selectedPaletteIdx=0;
+    btnDel.classList.remove('hidden');
+  } else {
+    title.textContent = 'Новое направление';
+    document.getElementById('aEmoji').value = '';
+    document.getElementById('aLabel').value = '';
+    selectedPaletteIdx = 0;
+    btnDel.classList.add('hidden');
+  }
+  renderSwatches();
+  document.getElementById('area-overlay').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('aEmoji').focus(),50);
+}
+
+function closeAreaModal(){
+  document.getElementById('area-overlay').classList.add('hidden');
+  editingAreaId = null;
+}
+
+document.getElementById('area-overlay').addEventListener('click',e=>{
+  if(e.target===e.currentTarget) closeAreaModal();
+});
+
+function saveArea(){
+  const emoji = document.getElementById('aEmoji').value.trim()||'🗂';
+  const label = document.getElementById('aLabel').value.trim();
+  if(!label) { document.getElementById('aLabel').focus(); return; }
+  const p = PALETTE[selectedPaletteIdx]||PALETTE[0];
+  if(editingAreaId){
+    AREAS[editingAreaId] = {...AREAS[editingAreaId], emoji, label, border:p.border, bg:p.bg, text:p.text};
+  } else {
+    const newId = String(Math.max(0,...Object.keys(AREAS).map(Number))+1);
+    AREAS[newId] = {emoji, label, border:p.border, bg:p.bg, text:p.text};
+  }
+  saveAreas();
+  renderToolbar();
+  render();
+  closeAreaModal();
+}
+
+function deleteArea(){
+  if(!editingAreaId) return;
+  const used = tasks.some(t=>String(t.area)===String(editingAreaId));
+  if(used && !confirm('Это направление используется в задачах. Удалить всё равно?')) return;
+  delete AREAS[editingAreaId];
+  saveAreas();
+  renderToolbar();
+  render();
+  closeAreaModal();
+}
+
+// ── MODAL ──
+function openModal(defaultStatus, id){
+  editingId = id||null;
+  const modal = document.getElementById('overlay');
+  const title = document.getElementById('modalTitle');
+  const btnDel = document.getElementById('btnDelete');
+
+  if(id){
+    const t = tasks.find(t=>t.id===id);
+    if(!t) return;
+    title.textContent = 'Редактировать задачу';
+    document.getElementById('fText').value = t.text;
+    document.getElementById('fArea').value = t.area;
+    document.getElementById('fDeadline').value = t.deadline||'';
+    document.getElementById('fDeadlineTime').value = t.deadlineTime||'';
+    document.getElementById('fDesc').value = t.description||'';
+    document.getElementById('fStatus').value = t.status;
+    btnDel.classList.remove('hidden');
+  } else {
+    title.textContent = 'Новая задача';
+    document.getElementById('fText').value = '';
+    document.getElementById('fArea').value = '1';
+    document.getElementById('fDeadline').value = '';
+    document.getElementById('fDeadlineTime').value = '';
+    document.getElementById('fDesc').value = '';
+    document.getElementById('fStatus').value = defaultStatus||'backlog';
+    btnDel.classList.add('hidden');
+  }
+  modal.classList.remove('hidden');
+  setTimeout(()=>document.getElementById('fText').focus(),50);
+}
+
+function closeModal(){
+  document.getElementById('overlay').classList.add('hidden');
+  editingId = null;
+}
+
+document.getElementById('overlay').addEventListener('click',e=>{
+  if(e.target===e.currentTarget) closeModal();
+});
+
+function saveTask(){
+  const text = document.getElementById('fText').value.trim();
+  if(!text) return;
+  const area         = parseInt(document.getElementById('fArea').value);
+  const deadline     = document.getElementById('fDeadline').value||null;
+  const deadlineTime = document.getElementById('fDeadlineTime').value||null;
+  const description  = document.getElementById('fDesc').value.trim()||null;
+  const status       = document.getElementById('fStatus').value;
+
+  if(editingId){
+    const t = tasks.find(t=>t.id===editingId);
+    if(t){
+      const wasNotDone = t.status !== 'done';
+      t.text=text; t.area=area; t.deadline=deadline; t.deadlineTime=deadlineTime;
+      t.description=description; t.status=status;
+      t.lastModified=Date.now();
+      if(status === 'done' && wasNotDone) t.completedAt = todayStr();
+      if(status !== 'done') t.completedAt = null;
+    }
+  } else {
+    const now = Date.now();
+    const newTask = {id:uid(),area,text,status,deadline,deadlineTime,description,completedAt:null,gcalEventId:null,lastModified:now,createdAt:now};
+    if(status === 'done') newTask.completedAt = todayStr();
+    tasks.push(newTask);
+  }
+  saveTasks(tasks); render(); closeModal();
+}
+
+function deleteTask(){
+  if(!editingId) return;
+  if(!confirm('Удалить задачу?')) return;
+  tasks = tasks.filter(t=>t.id!==editingId);
+  saveTasks(tasks); render(); closeModal();
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeModal();
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){
+    if(!document.getElementById('overlay').classList.contains('hidden')) saveTask();
+  }
+});
+
+// ── NOTIFICATIONS ──
+function checkNotifications(){
+  if(Notification.permission!=='granted') return;
+  const now = Date.now();
+  const lastCheck = parseInt(localStorage.getItem('lastNotifCheck')||'0');
+  if(now - lastCheck < 60*60*1000) return; // раз в час
+  localStorage.setItem('lastNotifCheck', now);
+
+  tasks.filter(t=>t.deadline && t.status!=='done').forEach(t=>{
+    const s = dateStatus(t.deadline, null, t.deadlineTime);
+    if(s==='overdue'||s==='today'){
+      const a = AREAS[t.area]||{};
+      const timeStr = t.deadlineTime ? ` в ${t.deadlineTime}` : '';
+      new Notification(`${s==='overdue'?'⚠ Просрочено':'🔥 Сегодня дедлайн'}: ${a.emoji||''} ${t.text.slice(0,60)}`,{
+        body: s==='overdue' ? `Срок был ${fmtDate(t.deadline)}${timeStr}` : `Срок: сегодня${timeStr}`,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📋</text></svg>'
+      });
+    }
+  });
+}
+
+document.getElementById('btnNotif').addEventListener('click',async()=>{
+  if(Notification.permission==='granted'){
+    checkNotifications();
+    alert('Уведомления включены ✓\nПроверка срочных задач выполнена.');
+  } else if(Notification.permission!=='denied'){
+    const p = await Notification.requestPermission();
+    if(p==='granted'){ checkNotifications(); }
+  } else {
+    alert('Уведомления заблокированы в браузере.\nРазрешите их в настройках сайта.');
+  }
+});
+
+// ── DATE HEADER ──
+const d = new Date();
+document.getElementById('dateLabel').textContent = d.toLocaleDateString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+// ── AUTO-ARCHIVE ──
+function isoWeek(dateStr){
+  // возвращает строку "YYYY-WNN" для переданной даты
+  const d = new Date(dateStr+'T00:00:00');
+  const jan4 = new Date(d.getFullYear(),0,4);
+  const startOfWeek1 = new Date(jan4);
+  startOfWeek1.setDate(jan4.getDate() - (jan4.getDay()||7) + 1);
+  const weekNo = Math.ceil(((d-startOfWeek1)/86400000+1)/7);
+  return `${d.getFullYear()}-W${String(weekNo).padStart(2,'0')}`;
+}
+
+function autoArchive(){
+  const currentWeek = isoWeek(todayStr());
+  let changed = false;
+  tasks.forEach(t=>{
+    if(t.status==='done' && t.completedAt){
+      if(isoWeek(t.completedAt) < currentWeek){
+        t.status = 'archive';
+        changed = true;
+      }
+    }
+  });
+  if(changed) saveTasks(tasks);
+}
+
+// ── EXPORT / IMPORT ──
+function exportData(){
+  const date = new Date().toISOString().slice(0,10);
+  const data = {
+    version: 2,
+    app: 'kanban-dashboard',
+    exportedAt: new Date().toISOString(),
+    tasks: tasks,
+    areas: AREAS
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `kanban_backup_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(){
+  // Кнопка теперь — label вокруг <input type="file">, этот метод не используется
+}
+
+function handleImportFile(input){
+  const file = input.files[0];
+  if(!file) return;
+  // Сбрасываем значение чтобы можно было выбрать тот же файл повторно
+  input.value = '';
+
+  const reader = new FileReader();
+  reader.onerror = () => alert('Не удалось прочитать файл.');
+  reader.onload = ev => {
+    let data;
+    try {
+      data = JSON.parse(ev.target.result);
+    } catch(e) {
+      alert('Файл повреждён или не является JSON.\nОшибка: '+e.message);
+      return;
+    }
+
+    if(!Array.isArray(data.tasks) || typeof data.areas !== 'object'){
+      alert('Неверный формат файла.\nОжидается kanban_backup_*.json');
+      return;
+    }
+
+    // Миграция: добавляем поля если их нет в старом файле
+    data.tasks.forEach(t=>{
+      if(t.gcalEventId===undefined) t.gcalEventId = null;
+      if(!t.lastModified)           t.lastModified = t.createdAt||Date.now();
+      if(!t.deadlineTime)           t.deadlineTime = null;
+      if(!t.description)            t.description  = null;
+    });
+
+    // Применяем
+    tasks = data.tasks;
+    AREAS = data.areas;
+    saveTasks(tasks);
+    saveAreas();
+    activeFilter = 'all';
+    renderToolbar();
+    render();
+
+    const dt = data.exportedAt
+      ? new Date(data.exportedAt).toLocaleString('ru-RU')
+      : 'дата неизвестна';
+    alert(`✓ Импортировано успешно!\n\n• ${tasks.length} задач\n• ${Object.keys(AREAS).length} направлений\n• Резервная копия от: ${dt}`);
+  };
+  reader.readAsText(file);
+}
+
+// ══════════════════════════════════════════════════════
+// ── GOOGLE CALENDAR INTEGRATION ──
+// ══════════════════════════════════════════════════════
+
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar';
+const GCAL_API   = 'https://www.googleapis.com/calendar/v3';
+
+// ── CONFIG (localStorage) ──
+function loadGcalConfig(){ return JSON.parse(localStorage.getItem('gcal_config')||'{}'); }
+function saveGcalConfig(cfg){ gcalConfig=cfg; localStorage.setItem('gcal_config',JSON.stringify(cfg)); }
+let gcalConfig = loadGcalConfig();
+// { clientId, calendarId, calendarName, lastSyncTime }
+
+// In-memory state (never persisted)
+let gcalToken     = null;  // access token
+let gcalSyncing   = false;
+let gcalCalendars = [];    // list after auth
+
+// ── DATE HELPERS (GCal) ──
+function gcalAddDay(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+1);
+  return d.toISOString().slice(0,10);
+}
+function gcalAddHour(isoStr){
+  const d = new Date(isoStr);
+  d.setHours(d.getHours()+1);
+  return d.toISOString();
+}
+function gcalWeekStart(){
+  // Monday 00:00:00 of current week
+  const d = new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - ((d.getDay()||7) - 1));
+  return d;
+}
+
+// ── AUTH ──
+function gcalLoadGIS(){
+  return new Promise((resolve,reject)=>{
+    if(window.google?.accounts){ resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = resolve;
+    s.onerror = ()=>reject(new Error('Не удалось загрузить Google Sign-In'));
+    document.head.appendChild(s);
+  });
+}
+
+async function gcalRequestToken(){
+  await gcalLoadGIS();
+  return new Promise((resolve,reject)=>{
+    // Таймаут 90 сек — если попап заблокирован, показываем ошибку вместо зависания
+    const t = setTimeout(()=>{
+      reject(new Error('Время ожидания вышло.\nВозможно, браузер заблокировал всплывающее окно.\nРазреши попапы для localhost:8080 в адресной строке и попробуй снова.'));
+    }, 90000);
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: gcalConfig.clientId,
+      scope: GCAL_SCOPE,
+      callback: resp=>{
+        clearTimeout(t);
+        if(resp.error){ reject(new Error(resp.error_description||resp.error)); return; }
+        gcalToken = resp.access_token;
+        resolve(resp);
+      }
+    });
+    client.requestAccessToken();
+  });
+}
+
+async function gcalEnsureToken(){
+  if(gcalToken) return;
+  await gcalRequestToken();
+}
+
+function gcalSignOut(){
+  if(gcalToken && window.google?.accounts?.oauth2){
+    try{ google.accounts.oauth2.revoke(gcalToken); }catch(e){}
+  }
+  gcalToken = null;
+  gcalCalendars = [];
+}
+
+// ── API ──
+async function gcalFetch(url, options={}){
+  if(!gcalToken) throw new Error('Нет токена авторизации');
+  const resp = await fetch(url,{
+    ...options,
+    headers:{
+      'Authorization':'Bearer '+gcalToken,
+      'Content-Type':'application/json',
+      ...(options.headers||{})
+    }
+  });
+  if(resp.status===401){ gcalToken=null; throw new Error('Сессия истекла. Войди заново.'); }
+  if(resp.status===204||resp.status===200&&resp.headers.get('content-length')==='0') return null;
+  if(!resp.ok){
+    const err = await resp.json().catch(()=>({}));
+    throw new Error(err.error?.message||`HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
+async function gcalListCalendars(){
+  const data = await gcalFetch(`${GCAL_API}/users/me/calendarList?minAccessRole=writer`);
+  return data.items||[];
+}
+
+// ── EVENT ↔ TASK CONVERSION ──
+
+// Status → Google Calendar color
+const GCAL_STATUS_COLOR = { backlog:'8', todo:'9', doing:'6', done:'2', archive:'8' };
+
+function taskToEvent(task){
+  // Convert task to Calendar event object (for POST/PATCH)
+  const a = AREAS[task.area]||{};
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // For done tasks, use completedAt as the date; otherwise deadline
+  const dl = (task.status==='done' && task.completedAt) ? task.completedAt : task.deadline;
+  if(!dl) return null; // no date → can't create event
+
+  let start, end;
+  if(task.deadlineTime){
+    start = { dateTime: dl+'T'+task.deadlineTime+':00', timeZone: tz };
+    end   = { dateTime: gcalAddHour(dl+'T'+task.deadlineTime+':00'), timeZone: tz };
+  } else {
+    start = { date: dl };
+    end   = { date: gcalAddDay(dl) };
+  }
+
+  const prefix = a.emoji ? a.emoji+' ' : '';
+  return {
+    summary: prefix+task.text,
+    description: task.description||'',
+    start, end,
+    colorId: GCAL_STATUS_COLOR[task.status]||'8',
+    extendedProperties: { private: { taskId: task.id } }
+  };
+}
+
+function isAcceptedInvitation(event){
+  // Returns false only for explicitly declined/tentative invitations
+  if(!event.attendees||event.attendees.length===0) return true; // own event
+  const self = event.attendees.find(a=>a.self);
+  if(!self) return true;
+  return self.responseStatus === 'accepted';
+}
+
+function stripAreaEmoji(text){
+  // Remove "EMOJI " prefix added by taskToEvent
+  const emojis = Object.values(AREAS).map(a=>a.emoji).filter(Boolean);
+  for(const em of emojis){
+    if(text.startsWith(em+' ')) return text.slice(em.length+1);
+  }
+  return text;
+}
+
+function applyEventToTask(task, event){
+  // Overwrite task fields from Calendar (status and area stay dashboard-managed)
+  if(event.summary) task.text = stripAreaEmoji(event.summary);
+  task.description = event.description||null;
+  if(event.start?.date){
+    task.deadline = event.start.date;
+    task.deadlineTime = null;
+  } else if(event.start?.dateTime){
+    task.deadline = event.start.dateTime.slice(0,10);
+    task.deadlineTime = event.start.dateTime.slice(11,16);
+  }
+  task.gcalEventId = event.id;
+  task.lastModified = new Date(event.updated).getTime();
+}
+
+function eventToNewTask(event){
+  let deadline=null, deadlineTime=null;
+  if(event.start?.date){
+    deadline = event.start.date;
+  } else if(event.start?.dateTime){
+    deadline = event.start.dateTime.slice(0,10);
+    deadlineTime = event.start.dateTime.slice(11,16);
+  }
+  const defaultAreaId = parseInt(Object.keys(AREAS)[0])||1;
+  const now = Date.now();
+  return {
+    id: uid(),
+    area: defaultAreaId,
+    text: event.summary||'Событие из Calendar',
+    description: event.description||null,
+    status: 'backlog',
+    deadline, deadlineTime,
+    completedAt: null,
+    gcalEventId: event.id,
+    lastModified: new Date(event.updated).getTime(),
+    createdAt: now
+  };
+}
+
+// ── SYNC ENGINE ──
+async function syncFull(){
+  if(gcalSyncing) return;
+  if(!gcalConfig.clientId){ gcalShowMsg('Укажи Client ID в настройках 📅','err'); return; }
+  if(!gcalConfig.calendarId){ gcalShowMsg('Выбери календарь в настройках 📅','err'); return; }
+
+  gcalSyncing = true;
+  const btnSync = document.getElementById('btnSync');
+  if(btnSync) btnSync.classList.add('syncing');
+
+  try {
+    await gcalEnsureToken();
+    const calId = encodeURIComponent(gcalConfig.calendarId);
+
+    // ── PULL: Calendar → Dashboard ──
+    const weekStart = gcalWeekStart();
+    const windowEnd = new Date(weekStart);
+    windowEnd.setDate(weekStart.getDate()+32);
+
+    const pullParams = new URLSearchParams({
+      singleEvents: 'true',
+      timeMin: weekStart.toISOString(),
+      timeMax: windowEnd.toISOString(),
+      maxResults: '500',
+      fields: 'items(id,summary,description,start,end,status,updated,extendedProperties,attendees)'
+    });
+
+    const pulled = await gcalFetch(`${GCAL_API}/calendars/${calId}/events?${pullParams}`);
+    const events = (pulled.items||[]).filter(e=>e.status!=='cancelled');
+
+    // Build lookups
+    const evById    = {};  // id → event
+    const evByTaskId = {}; // taskId → event
+    events.forEach(e=>{
+      evById[e.id] = e;
+      const tid = e.extendedProperties?.private?.taskId;
+      if(tid) evByTaskId[tid] = e;
+    });
+
+    // Process each pulled event
+    for(const event of events){
+      const taskId = event.extendedProperties?.private?.taskId;
+
+      if(taskId){
+        // Known task: conflict resolution by timestamp
+        const task = tasks.find(t=>t.id===taskId);
+        if(!task){
+          // Task deleted locally → delete Calendar event too
+          await gcalFetch(`${GCAL_API}/calendars/${calId}/events/${event.id}`,{method:'DELETE'}).catch(()=>{});
+          continue;
+        }
+        const taskTs  = task.lastModified||task.createdAt||0;
+        const eventTs = new Date(event.updated).getTime();
+        if(eventTs > taskTs){
+          // Calendar is newer → apply to task
+          applyEventToTask(task, event);
+        }
+        // else: task is newer → will be pushed in push phase
+
+      } else {
+        // New event in Calendar → check invitation status
+        if(!isAcceptedInvitation(event)) continue;
+        // Skip events that already exist as tasks (by id in another field)
+        const exists = tasks.find(t=>t.gcalEventId===event.id);
+        if(exists){ exists.gcalEventId=event.id; continue; }
+
+        const newTask = eventToNewTask(event);
+        tasks.push(newTask);
+
+        // Write taskId back to the event
+        await gcalFetch(`${GCAL_API}/calendars/${calId}/events/${event.id}`,{
+          method:'PATCH',
+          body:JSON.stringify({extendedProperties:{private:{taskId:newTask.id}}})
+        }).catch(()=>{});
+      }
+    }
+
+    // ── PUSH: Dashboard → Calendar ──
+    for(const task of tasks){
+      // Archive tasks without event: skip (they have no date to push)
+      if(task.status==='archive' && !task.gcalEventId) continue;
+      // Tasks with no deadline and no existing event: skip
+      if(!task.deadline && !task.gcalEventId) continue;
+
+      const eventData = taskToEvent(task);
+      const taskTs = task.lastModified||task.createdAt||0;
+
+      if(task.gcalEventId){
+        const existingEv = evById[task.gcalEventId];
+        if(existingEv){
+          const eventTs = new Date(existingEv.updated).getTime();
+          if(taskTs >= eventTs && eventData){
+            // Task is newer → push update
+            await gcalFetch(`${GCAL_API}/calendars/${calId}/events/${task.gcalEventId}`,{
+              method:'PATCH',
+              body:JSON.stringify(eventData)
+            }).catch(()=>{});
+          }
+        } else {
+          // Event not in pull window — try updating directly
+          if(eventData){
+            const updated = await gcalFetch(`${GCAL_API}/calendars/${calId}/events/${task.gcalEventId}`,{
+              method:'PATCH',
+              body:JSON.stringify(eventData)
+            }).catch(()=>null);
+            if(!updated && task.deadline){
+              // Probably 404/gone — recreate
+              const created = await gcalFetch(`${GCAL_API}/calendars/${calId}/events`,{
+                method:'POST',
+                body:JSON.stringify(eventData)
+              }).catch(()=>null);
+              if(created) task.gcalEventId = created.id;
+            }
+          }
+        }
+      } else if(task.deadline && eventData){
+        // New task with deadline — create Calendar event
+        const created = await gcalFetch(`${GCAL_API}/calendars/${calId}/events`,{
+          method:'POST',
+          body:JSON.stringify(eventData)
+        }).catch(()=>null);
+        if(created) task.gcalEventId = created.id;
+      }
+    }
+
+    // Persist & refresh
+    saveTasks(tasks);
+    render();
+    saveGcalConfig({...gcalConfig, lastSyncTime:Date.now()});
+    updateGcalUI();
+    const time = new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+    gcalShowMsg(`✓ Синхронизировано в ${time}`,'ok');
+
+  } catch(err){
+    console.error('GCal sync error:', err);
+    gcalShowMsg('Ошибка: '+err.message,'err');
+  } finally {
+    gcalSyncing = false;
+    if(btnSync) btnSync.classList.remove('syncing');
+  }
+}
+
+// ── GCAL UI ──
+function openGcalSettings(){
+  updateGcalUI();
+  document.getElementById('gcal-overlay').classList.remove('hidden');
+  // Pre-fill saved clientId
+  const inp = document.getElementById('gcalClientId');
+  if(inp && gcalConfig.clientId && !inp.value) inp.value = gcalConfig.clientId;
+}
+
+function closeGcalSettings(){
+  document.getElementById('gcal-overlay').classList.add('hidden');
+}
+
+document.getElementById('gcal-overlay').addEventListener('click',e=>{
+  if(e.target===e.currentTarget) closeGcalSettings();
+});
+
+function updateGcalUI(){
+  const isConfigured = !!gcalConfig.clientId;
+  const hasToken     = !!gcalToken;
+  const hasCal       = !!gcalConfig.calendarId;
+
+  // Toolbar sync button
+  const btnSync = document.getElementById('btnSync');
+  if(btnSync) btnSync.style.display = (isConfigured && hasCal) ? 'inline-flex' : 'none';
+
+  // Modal sections
+  const secSetup = document.getElementById('gcal-setup');
+  const secCal   = document.getElementById('gcal-cal-select');
+  const secStat  = document.getElementById('gcal-status');
+  if(!secSetup) return;
+
+  if(!isConfigured || !hasToken){
+    secSetup.style.display = '';
+    secCal.style.display   = 'none';
+    secStat.style.display  = 'none';
+  } else if(!hasCal){
+    secSetup.style.display = 'none';
+    secCal.style.display   = '';
+    secStat.style.display  = 'none';
+    gcalPopulateCalSelect();
+  } else {
+    secSetup.style.display = 'none';
+    secCal.style.display   = 'none';
+    secStat.style.display  = '';
+    const calNameEl = document.getElementById('gcal-calname');
+    if(calNameEl) calNameEl.textContent = gcalConfig.calendarName||gcalConfig.calendarId;
+    const lastSyncEl = document.getElementById('gcal-lastsync');
+    if(lastSyncEl){
+      lastSyncEl.textContent = gcalConfig.lastSyncTime
+        ? 'Последняя синхронизация: '+new Date(gcalConfig.lastSyncTime).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})
+        : 'Ещё не синхронизировано';
+    }
+  }
+}
+
+function gcalPopulateCalSelect(){
+  const sel = document.getElementById('gcalCalSelect');
+  if(!sel) return;
+  if(!gcalCalendars.length){
+    sel.innerHTML = '<option value="">Список пуст или недоступен</option>';
+    return;
+  }
+  sel.innerHTML = gcalCalendars.map(c=>
+    `<option value="${esc(c.id)}">${esc(c.summary)}</option>`
+  ).join('');
+}
+
+async function gcalConnect(){
+  const clientId = (document.getElementById('gcalClientId')?.value||'').trim();
+  if(!clientId){ document.getElementById('gcalClientId').focus(); return; }
+
+  saveGcalConfig({...gcalConfig, clientId});
+
+  const btn = document.getElementById('btnGcalConnect');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Подключение…'; }
+
+  try {
+    await gcalEnsureToken();
+    gcalCalendars = await gcalListCalendars();
+    updateGcalUI();
+    gcalClearMsg();
+  } catch(err){
+    gcalShowMsg('Ошибка авторизации: '+err.message,'err');
+    if(btn){ btn.disabled=false; btn.textContent='Подключить Google →'; }
+  }
+}
+
+async function gcalSaveCalendar(){
+  const sel = document.getElementById('gcalCalSelect');
+  if(!sel||!sel.value) return;
+  const calName = sel.options[sel.selectedIndex]?.text||sel.value;
+  saveGcalConfig({...gcalConfig, calendarId:sel.value, calendarName:calName});
+  updateGcalUI();
+}
+
+function gcalGoBack(){
+  gcalSignOut();
+  // Clear calendarId too so we go back to setup
+  saveGcalConfig({...gcalConfig, calendarId:undefined, calendarName:undefined});
+  updateGcalUI();
+}
+
+function gcalDisconnect(){
+  if(!confirm('Отключить Google Calendar?\nЗадачи и события в календаре останутся как есть.')) return;
+  gcalSignOut();
+  saveGcalConfig({});
+  updateGcalUI();
+}
+
+function gcalShowMsg(msg, type){
+  const el = document.getElementById('gcal-msg');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.display = '';
+  el.style.background = type==='ok' ? '#f0fdf4' : '#fff5f5';
+  el.style.color      = type==='ok' ? '#059669' : '#dc2626';
+  el.style.border     = '1px solid '+(type==='ok'?'#bbf7d0':'#fca5a5');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.style.display='none', 5000);
+}
+function gcalClearMsg(){
+  const el = document.getElementById('gcal-msg');
+  if(el){ el.style.display='none'; }
+}
+
+// ── INIT ──
+autoArchive();
+renderToolbar();
+render();
+checkNotifications();
+updateGcalUI(); // показать/скрыть кнопку 🔄 в тулбаре
+if(gcalConfig.clientId && gcalConfig.calendarId) syncFull(); // автосинк при открытии
+</script>
+</body>
+</html>

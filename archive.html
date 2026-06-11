@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Архив задач</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#eef0f4;color:#1a1a2e;min-height:100vh}
+
+/* ── HEADER ── */
+header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.header-left{display:flex;align-items:center;gap:14px}
+.btn-back{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background .15s}
+.btn-back:hover{background:rgba(255,255,255,.2)}
+.logo{font-size:18px;font-weight:700;letter-spacing:-.3px}
+.hdate{font-size:12px;opacity:.55;margin-top:2px}
+.hstats{display:flex;gap:20px}
+.hstat{text-align:center}
+.hstat .n{font-size:22px;font-weight:700}
+.hstat .l{font-size:10px;opacity:.55;text-transform:uppercase;letter-spacing:.5px}
+
+/* ── TOOLBAR ── */
+.toolbar{padding:12px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border-bottom:1px solid #e0e0e0}
+.filter-chip{padding:5px 13px;border-radius:20px;border:1.5px solid #ddd;font-size:12.5px;cursor:pointer;background:#fff;transition:all .15s;white-space:nowrap;user-select:none}
+.filter-chip:hover{border-color:#888}
+.filter-chip.active{background:#1a1a2e;color:#fff;border-color:#1a1a2e}
+.toolbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.sort-label{font-size:12px;color:#888}
+.sort-select{border:1.5px solid #ddd;border-radius:8px;padding:5px 10px;font-size:13px;background:#fff;cursor:pointer;outline:none}
+.sort-select:focus{border-color:#0066cc}
+
+/* ── CONTENT ── */
+.content{padding:24px;max-width:900px;margin:0 auto}
+
+/* ── AREA SECTION ── */
+.area-section{background:#fff;border-radius:12px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.area-header{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;border-left:4px solid transparent}
+.area-header:hover{background:#fafafa}
+.area-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.area-count{background:#f0f0f0;color:#666;border-radius:10px;padding:2px 9px;font-size:12px;font-weight:600}
+.area-toggle{font-size:12px;color:#aaa;transition:transform .2s}
+.area-toggle.open{transform:rotate(180deg)}
+.area-body{border-top:1px solid #f0f0f0}
+
+/* ── TASK ROW ── */
+.task-row{padding:12px 18px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid #f8f8f8;transition:background .1s}
+.task-row:last-child{border-bottom:none}
+.task-row:hover{background:#fafafa}
+.task-check{font-size:16px;margin-top:1px;flex-shrink:0}
+.task-body{flex:1;min-width:0}
+.task-text{font-size:13.5px;line-height:1.45;color:#1a1a2e;word-break:break-word}
+.task-meta{display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap}
+.task-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500}
+.badge-ontime{background:#d1fae5;color:#065f46}
+.badge-late{background:#fee2e2;color:#b91c1c}
+.badge-nodl{background:#f1f5f9;color:#64748b}
+.task-date{font-size:11px;color:#aaa}
+.task-deadline{font-size:11px;color:#999}
+.task-desc-toggle{font-size:11px;color:#94a3b8;cursor:pointer;margin-top:6px;user-select:none}
+.task-desc-toggle:hover{color:#0066cc}
+.task-desc-body{font-size:12px;color:#475569;line-height:1.55;margin-top:4px;padding:8px 10px;background:#f8fafc;border-radius:6px;border-left:3px solid #e2e8f0;white-space:pre-wrap;word-break:break-word;display:none}
+.task-desc-body a{color:#0066cc;text-decoration:none}
+.task-desc-body a:hover{text-decoration:underline}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:60px 24px;color:#bbb}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:15px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <a class="btn-back" href="dashboard.html">← Канбан</a>
+    <div>
+      <div class="logo">📦 Архив задач</div>
+      <div class="hdate" id="dateLabel"></div>
+    </div>
+  </div>
+  <div class="hstats">
+    <div class="hstat"><div class="n" id="sTotal">0</div><div class="l">Всего</div></div>
+    <div class="hstat"><div class="n" id="sOntime" style="color:#6ee7b7">0</div><div class="l">Вовремя</div></div>
+    <div class="hstat"><div class="n" id="sLate" style="color:#f87171">0</div><div class="l">Просрочено</div></div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div id="filterChips" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"></div>
+  <div class="toolbar-right">
+    <span class="sort-label">Сортировка:</span>
+    <select class="sort-select" id="sortSelect">
+      <option value="completedAt_desc">Дата завершения ↓</option>
+      <option value="completedAt_asc">Дата завершения ↑</option>
+      <option value="deadline_desc">Дедлайн ↓</option>
+      <option value="deadline_asc">Дедлайн ↑</option>
+    </select>
+  </div>
+</div>
+
+<div class="content" id="content"></div>
+
+<script>
+// ── SHARED HELPERS (дублируем из dashboard) ──
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+
+const PALETTE = [
+  {border:'#6366f1',bg:'#ede9fe',text:'#4f46e5'},
+  {border:'#ec4899',bg:'#fce7f3',text:'#be185d'},
+  {border:'#14b8a6',bg:'#ccfbf1',text:'#0f766e'},
+  {border:'#f59e0b',bg:'#fef3c7',text:'#b45309'},
+  {border:'#8b5cf6',bg:'#ede9fe',text:'#6d28d9'},
+  {border:'#10b981',bg:'#d1fae5',text:'#065f46'},
+  {border:'#84cc16',bg:'#ecfccb',text:'#3f6212'},
+  {border:'#3b82f6',bg:'#dbeafe',text:'#1d4ed8'},
+  {border:'#f97316',bg:'#ffedd5',text:'#c2410c'},
+  {border:'#06b6d4',bg:'#cffafe',text:'#0e7490'},
+  {border:'#ef4444',bg:'#fee2e2',text:'#b91c1c'},
+  {border:'#64748b',bg:'#f1f5f9',text:'#334155'},
+];
+
+const DEFAULT_AREAS = {
+  1:{emoji:'🔍',label:'Поиск работы',  ...PALETTE[0]},
+  2:{emoji:'👩‍⚕️',label:'Мама / Врачи', ...PALETTE[1]},
+  3:{emoji:'🏠',label:'Дом',           ...PALETTE[2]},
+  4:{emoji:'🧠',label:'Обучение ИИ',   ...PALETTE[3]},
+  5:{emoji:'🚀',label:'Пет-проект',    ...PALETTE[4]},
+  6:{emoji:'💼',label:'Бизнес',        ...PALETTE[5]},
+  7:{emoji:'🌿',label:'Дача',          ...PALETTE[6]},
+};
+
+function loadAreas(){
+  const stored = localStorage.getItem('areas_v1');
+  if(stored){
+    const a = JSON.parse(stored);
+    Object.values(a).forEach((v,i)=>{
+      if(!v.border){ const p=PALETTE[i%PALETTE.length]; v.border=p.border; v.bg=p.bg; v.text=p.text; }
+    });
+    return a;
+  }
+  return JSON.parse(JSON.stringify(DEFAULT_AREAS));
+}
+
+const AREAS = loadAreas();
+
+function loadTasks(){
+  const cur = localStorage.getItem('tasks_v2');
+  return cur ? JSON.parse(cur) : [];
+}
+
+function fmtDate(dl){
+  if(!dl) return '';
+  const [y,m,d] = dl.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function linkify(text){
+  return esc(text).replace(/(https?:\/\/[^\s<>"]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+let descCounter = 0;
+function toggleArchiveDesc(id){
+  const body  = document.getElementById('adesc-body-'+id);
+  const label = document.getElementById('adesc-label-'+id);
+  if(!body) return;
+  const open = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  label.textContent  = open ? '📎 Показать описание' : '📎 Скрыть описание';
+}
+
+// ── STATE ──
+const tasks = loadTasks().filter(t=>t.status==='archive');
+let activeFilter = 'all';
+let sortBy = 'completedAt_desc';
+// track collapsed state per area
+const collapsed = {};
+
+// ── FILTER + SORT ──
+function filtered(){
+  if(activeFilter==='all') return tasks;
+  return tasks.filter(t=>String(t.area)===activeFilter);
+}
+
+function sorted(list){
+  const arr = [...list];
+  switch(sortBy){
+    case 'completedAt_desc': arr.sort((a,b)=>(b.completedAt||'').localeCompare(a.completedAt||'')); break;
+    case 'completedAt_asc':  arr.sort((a,b)=>(a.completedAt||'').localeCompare(b.completedAt||'')); break;
+    case 'deadline_desc':    arr.sort((a,b)=>(b.deadline||'').localeCompare(a.deadline||'')); break;
+    case 'deadline_asc':     arr.sort((a,b)=>(a.deadline||'').localeCompare(b.deadline||'')); break;
+  }
+  return arr;
+}
+
+// ── RENDER ──
+function renderFilterChips(){
+  const fc = document.getElementById('filterChips');
+  const areaIds = [...new Set(tasks.map(t=>String(t.area)))];
+  fc.innerHTML = `<button class="filter-chip${activeFilter==='all'?' active':''}" data-area="all">Все</button>`
+    + areaIds.map(id=>{
+        const a = AREAS[id]||{emoji:'',label:`Направление ${id}`,border:'#ccc'};
+        return `<button class="filter-chip${activeFilter===id?' active':''}" data-area="${id}">${a.emoji} ${a.label}</button>`;
+      }).join('');
+}
+
+function taskRowHTML(t){
+  const hasDl = !!t.deadline;
+  // для сравнения просрочки используем дату+время если есть
+  const dlFull = hasDl && t.deadlineTime ? t.deadline+'T'+t.deadlineTime : t.deadline;
+  const late = hasDl && t.completedAt && t.completedAt > (t.deadline||'');
+  const badgeCls = !hasDl ? 'badge-nodl' : late ? 'badge-late' : 'badge-ontime';
+  const badgeTxt = !hasDl ? 'без дедлайна' : late ? '⚠ просрочено' : '✓ вовремя';
+
+  const completedStr = t.completedAt ? `завершено ${fmtDate(t.completedAt)}` : '';
+  const deadlineStr  = hasDl ? `дедлайн ${fmtDate(t.deadline)}${t.deadlineTime?' '+t.deadlineTime:''}` : '';
+
+  const uid = t.id;
+  const descBlock = t.description ? `
+    <div class="task-desc-toggle" onclick="toggleArchiveDesc('${uid}')">
+      <span id="adesc-label-${uid}">📎 Показать описание</span>
+    </div>
+    <div class="task-desc-body" id="adesc-body-${uid}">${linkify(t.description)}</div>` : '';
+
+  return `<div class="task-row">
+    <span class="task-check">✅</span>
+    <div class="task-body">
+      <div class="task-text">${esc(t.text)}</div>
+      <div class="task-meta">
+        <span class="task-badge ${badgeCls}">${badgeTxt}</span>
+        ${completedStr ? `<span class="task-date">${completedStr}</span>` : ''}
+        ${deadlineStr  ? `<span class="task-deadline">${deadlineStr}</span>` : ''}
+      </div>
+      ${descBlock}
+    </div>
+  </div>`;
+}
+
+function render(){
+  const list = sorted(filtered());
+
+  // stats
+  document.getElementById('sTotal').textContent = list.length;
+  document.getElementById('sOntime').textContent = list.filter(t=>t.deadline && t.completedAt && t.completedAt <= t.deadline).length;
+  document.getElementById('sLate').textContent   = list.filter(t=>t.deadline && t.completedAt && t.completedAt > t.deadline).length;
+
+  const content = document.getElementById('content');
+
+  if(!list.length){
+    content.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Архив пуст — завершённые задачи появятся здесь на следующей неделе</p></div>`;
+    return;
+  }
+
+  // group by area
+  const groups = {};
+  list.forEach(t=>{
+    const key = String(t.area);
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(t);
+  });
+
+  content.innerHTML = Object.entries(groups).map(([areaId, items])=>{
+    const a = AREAS[areaId]||{emoji:'',label:`Направление ${areaId}`,border:'#ccc',bg:'#f5f5f5',text:'#666'};
+    const isOpen = collapsed[areaId] !== true; // открыто по умолчанию
+    return `<div class="area-section">
+      <div class="area-header" style="border-left-color:${a.border}" onclick="toggleArea('${areaId}')">
+        <div class="area-title">
+          <span style="background:${a.bg};color:${a.text};padding:3px 10px;border-radius:10px;font-size:12px">${a.emoji} ${a.label}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="area-count">${items.length}</span>
+          <span class="area-toggle${isOpen?' open':''}">▼</span>
+        </div>
+      </div>
+      ${isOpen ? `<div class="area-body">${items.map(taskRowHTML).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function toggleArea(id){
+  collapsed[id] = !collapsed[id];
+  render();
+}
+
+// ── EVENTS ──
+document.getElementById('filterChips').addEventListener('click', e=>{
+  const btn = e.target.closest('.filter-chip');
+  if(!btn) return;
+  document.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = btn.dataset.area;
+  render();
+});
+
+document.getElementById('sortSelect').addEventListener('change', e=>{
+  sortBy = e.target.value;
+  render();
+});
+
+// ── DATE HEADER ──
+const d = new Date();
+document.getElementById('dateLabel').textContent = d.toLocaleDateString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+// ── INIT ──
+renderFilterChips();
+render();
+</script>
+</body>
+</html>
