@@ -1,23 +1,35 @@
-# 📋 Канбан-дашборд / Kanban Dashboard
+<div align="center">
 
-Персональный канбан-планировщик задач — одностраничное веб-приложение без сервера, зависимостей и регистраций. Работает прямо в браузере, данные хранятся локально.
+# 📋 Канбан-дашборд
 
-> Personal kanban task manager — a single-file web app with no server, no dependencies, no accounts. Runs in the browser, data stored locally.
+**Персональный планировщик задач — один HTML-файл, никаких зависимостей**
+
+[![Version](https://img.shields.io/badge/версия-1.1-2563eb?style=flat-square)](https://github.com/AI-Rushan/kanban-dashboard/releases)
+[![License](https://img.shields.io/badge/лицензия-MIT-16a34a?style=flat-square)](LICENSE)
+[![Platform](https://img.shields.io/badge/платформа-macOS-lightgrey?style=flat-square&logo=apple)](https://github.com/AI-Rushan/kanban-dashboard)
+[![No Framework](https://img.shields.io/badge/фреймворк-нет-f97316?style=flat-square)](https://github.com/AI-Rushan/kanban-dashboard)
+[![Google Calendar](https://img.shields.io/badge/Google_Calendar-синхронизация-4285F4?style=flat-square&logo=googlecalendar&logoColor=white)](https://github.com/AI-Rushan/kanban-dashboard/blob/main/docs/installation.md)
+
+> Personal kanban task manager — a single HTML file with no server, no dependencies, no accounts required.
+
+[🚀 Быстрый старт](#-быстрый-старт) · [✨ Возможности](#-возможности) · [📅 Google Calendar](#-google-calendar) · [📖 Документация](#-документация) · [🗺 Роадмап](#-роадмап)
+
+</div>
 
 ---
 
 ## ✨ Возможности
 
-- **Канбан-доска** — 4 колонки: Backlog → Sprint → In Progress → Done
-- **Направления** — категории задач с цветами и emoji (настраиваемые)
-- **Дедлайны** — с временем, визуальной индикацией: просрочено / сегодня / скоро
-- **Описания** — свободное поле с кликабельными ссылками
-- **Автоархив** — задачи «Сделано» уходят в архив после текущей недели
+- **Канбан-доска** — 4 колонки: Backlog → Todo → In Progress → Done
+- **Направления** — категории задач с цветами и emoji, настраиваемые
+- **Дедлайны** — с временем, визуальная индикация: просрочено / сегодня / скоро
+- **Описания** — свободный текст с кликабельными ссылками
+- **Автоархив** — выполненные задачи уходят в архив после текущей ISO-недели
 - **Архив** — отдельная страница с группировкой, фильтрами и статистикой
 - **Сортировка** — независимая для каждой колонки
 - **Фильтрация** — по направлениям через чипы в тулбаре
 - **Уведомления** — браузерные push о просроченных задачах (раз в час)
-- **Экспорт / Импорт** — бэкап в JSON одной кнопкой
+- **Экспорт / Импорт** — резервная копия в JSON одной кнопкой
 - **Google Calendar** — двусторонняя синхронизация через OAuth 2.0
 
 ---
@@ -27,7 +39,7 @@
 ### Без Google Calendar (просто и быстро)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/kanban-dashboard.git
+git clone https://github.com/AI-Rushan/kanban-dashboard.git
 cd kanban-dashboard
 open dashboard.html
 ```
@@ -35,21 +47,25 @@ open dashboard.html
 ### С Google Calendar (через локальный сервер)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/kanban-dashboard.git
+git clone https://github.com/AI-Rushan/kanban-dashboard.git
 cd kanban-dashboard
 chmod +x launch.command
-double-click launch.command   # или: python3 -m http.server 8080
 ```
 
-Откроется `http://localhost:8080/dashboard.html`
+Дважды кликни `launch.command` — сервер запустится и откроется браузер на `http://localhost:8080/dashboard.html`
+
+Подробная инструкция по настройке Google Calendar → [`docs/installation.md`](docs/installation.md)
 
 ---
 
 ## 📋 Требования
 
-- macOS (для `launch.command`)
-- Python 3 (предустановлен на macOS 12+)
-- Safari или Chrome
+| | Базовая установка | С Google Calendar |
+|---|---|---|
+| Система | macOS | macOS |
+| Python | Python 3 (есть на macOS 12+) | Python 3 |
+| Браузер | Safari или Chrome | Safari или Chrome |
+| Google аккаунт | не нужен | нужен |
 
 ---
 
@@ -57,52 +73,60 @@ double-click launch.command   # или: python3 -m http.server 8080
 
 ```
 kanban-dashboard/
-├── dashboard.html      # Основная страница — вся логика здесь
+├── dashboard.html      # Вся логика приложения — один файл
 ├── archive.html        # Страница архива
-├── launch.command      # Скрипт запуска (macOS)
+├── launch.command      # Скрипт запуска (macOS, двойной клик)
+├── ROADMAP.md          # Планы развития
 ├── README.md
 ├── LICENSE
 └── docs/
-    ├── agreements.md   # Принятые решения по проекту
-    ├── requirements.md # Требования к продукту
-    ├── spec.md         # Техническое задание
-    ├── user-guide.md   # Руководство пользователя
-    ├── installation.md # Установка и настройка
-    ├── migration.md    # Перенос на другой компьютер
-    ├── technical.md    # Техдокументация для разработчика
-    └── changelog.md    # История версий
+    ├── user-guide.md       # Руководство пользователя
+    ├── installation.md     # Установка и настройка Google Calendar
+    ├── migration.md        # Перенос на другой компьютер
+    ├── technical.md        # Техдокументация для разработчика
+    ├── spec.md             # Техническое задание
+    ├── changelog.md        # История версий
+    ├── agreements.md       # Принятые решения по проекту
+    ├── requirements.md     # Требования к продукту
+    └── project-journal.md  # Журнал разработки
 ```
 
 ---
 
-## 🔄 Google Calendar — синхронизация
+## 📅 Google Calendar
 
 Двусторонняя синхронизация через Google Calendar API v3:
 
-- Задачи с дедлайном → события в Calendar (цвет = статус задачи)
+- Задачи с дедлайном → события в Calendar (цвет события = статус задачи)
 - События из Calendar → задачи в Backlog (принятые приглашения тоже)
-- Конфликты: побеждает более свежая запись (`lastModified`)
-- Автосинк при открытии страницы + ручная кнопка 🔄
+- Конфликты: побеждает более свежая запись по полю `lastModified`
+- Автосинхронизация при открытии страницы + ручная кнопка 🔄
+- Принудительная перезапись всех задач кнопкой ⚡ в настройках
 
-Подробная инструкция настройки — в [`docs/installation.md`](docs/installation.md).
+| Цвет события | Статус задачи |
+|---|---|
+| 🩶 Серый | Backlog |
+| 🔵 Синий | Todo |
+| 🟠 Оранжевый | In Progress |
+| 🟢 Зелёный | Done |
 
 ---
 
 ## 💾 Хранение данных
 
-Все данные хранятся в `localStorage` браузера. Никуда не передаются кроме Google Calendar (по явному запросу пользователя).
+Все данные хранятся в `localStorage` браузера. Никуда не передаются, кроме Google Calendar (по явному запросу).
 
 | Ключ | Содержимое |
-|------|-----------|
+|---|---|
 | `tasks_v2` | Массив задач |
 | `areas_v1` | Объект направлений |
 | `gcal_config` | Настройки Google Calendar |
 
-Резервная копия — кнопка 📤 в тулбаре, скачивается `kanban_backup_ДАТА.json`.
+Резервная копия — кнопка 📤 в тулбаре, скачивается файл `kanban_backup_ДАТА.json`.
 
 ---
 
-## 📦 Структура задачи
+## 📦 Структура задачи (JSON)
 
 ```json
 {
@@ -124,10 +148,31 @@ kanban-dashboard/
 
 ## 🛠 Технологии
 
-- Vanilla JS (ES2020+), HTML5, CSS3
-- Без фреймворков, без сборщиков, без зависимостей
-- Google Identity Services для OAuth
-- Google Calendar API v3
+- **Vanilla JS** (ES2020+), HTML5, CSS3 — без фреймворков и сборщиков
+- **Google Identity Services** — OAuth 2.0 popup flow
+- **Google Calendar API v3** — двусторонняя синхронизация
+- **localStorage** — хранение данных без сервера
+
+---
+
+## 🗺 Роадмап
+
+Планы развития — в файле [`ROADMAP.md`](ROADMAP.md).
+
+Ближайшие цели (v1.2): Windows-поддержка, вложения файлов, тёмная тема, поиск.
+
+---
+
+## 📖 Документация
+
+| Документ | Описание |
+|---|---|
+| [Руководство пользователя](docs/user-guide.md) | Как пользоваться дашбордом |
+| [Установка](docs/installation.md) | Установка и настройка Google Calendar |
+| [Перенос данных](docs/migration.md) | Переезд на другой компьютер |
+| [Техдокументация](docs/technical.md) | Для разработчиков |
+| [Changelog](docs/changelog.md) | История изменений |
+| [Роадмап](ROADMAP.md) | Планы развития |
 
 ---
 
@@ -137,6 +182,10 @@ MIT — подробнее в файле [LICENSE](LICENSE).
 
 ---
 
-## 👤 Автор
+<div align="center">
 
-Рушан Умеров — [rumerov@gmail.com](mailto:rumerov@gmail.com) | [@SENSE-AI](https://github.com/SENSE-AI)
+Сделано с ❤️ для личной продуктивности
+
+**Рушан Умеров** · [rumerov@gmail.com](mailto:rumerov@gmail.com) · [@AI-Rushan](https://github.com/AI-Rushan)
+
+</div>
