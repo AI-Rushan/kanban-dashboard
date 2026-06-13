@@ -1,3 +1,7 @@
+# Секреты Google OAuth — никогда не публиковать!
+google/
+*client_secret*.json
+
 # macOS
 .DS_Store
 .AppleDouble
@@ -16,3 +20,4 @@ kanban_backup_*.json
 
 # Логи
 *.log
+google/

@@ -319,6 +319,10 @@ header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;pad
         <button class="btn-cancel" onclick="gcalGoBack()" style="border:1.5px solid #ddd">Сменить Client ID</button>
         <button class="btn-save" onclick="syncFull()">🔄 Синхронизировать</button>
       </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee">
+        <button class="btn-cancel" style="width:100%;color:#d97706;border-color:#d97706" onclick="forcePushAll()">⚡ Принудительно обновить все задачи в Calendar</button>
+        <div style="font-size:11px;color:#888;margin-top:5px">Перезапишет ВСЕ задачи с дедлайном в Calendar без проверки дат. Используй если обычная синхронизация не помогает.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1257,6 +1261,84 @@ function eventToNewTask(event){
   };
 }
 
+// ── FORCE PUSH: принудительно перезаписать все задачи в Calendar ──
+async function forcePushAll(){
+  if(gcalSyncing){ gcalShowMsg('Синхронизация уже идёт...','err'); return; }
+  if(!gcalConfig.clientId || !gcalConfig.calendarId){ gcalShowMsg('Настрой Google Calendar сначала','err'); return; }
+
+  await gcalEnsureToken();
+  if(!gcalToken){ gcalShowMsg('Нет токена — войди снова','err'); return; }
+
+  const calId = encodeURIComponent(gcalConfig.calendarId);
+  gcalSyncing = true;
+  gcalShowMsg('⚡ Принудительная отправка...','');
+
+  let pushed = 0;
+  let errors = 0;
+
+  for(const task of tasks){
+    if(!task.deadline) continue;  // без дедлайна нечего пушить
+    const eventData = taskToEvent(task);
+    if(!eventData) continue;
+
+    console.log('[ForcePush] task:', task.text.slice(0,40), '| deadline:', task.deadline, '| gcalEventId:', task.gcalEventId);
+
+    if(task.gcalEventId){
+      // Обновить существующее событие
+      const patched = await gcalFetch(`${GCAL_API}/calendars/${calId}/events/${task.gcalEventId}`,{
+        method:'PATCH',
+        body: JSON.stringify(eventData)
+      }).catch(e=>{ console.error('[ForcePush] PATCH error:', e); return null; });
+
+      if(patched){
+        if(patched.updated) task.lastModified = new Date(patched.updated).getTime();
+        pushed++;
+        console.log('[ForcePush]   ✓ обновлено:', patched.start?.date);
+      } else {
+        // Событие удалено из Calendar — создать заново
+        console.log('[ForcePush]   PATCH failed — пробую POST');
+        const created = await gcalFetch(`${GCAL_API}/calendars/${calId}/events`,{
+          method:'POST',
+          body: JSON.stringify(eventData)
+        }).catch(()=>null);
+        if(created){
+          task.gcalEventId = created.id;
+          if(created.updated) task.lastModified = new Date(created.updated).getTime();
+          pushed++;
+          console.log('[ForcePush]   ✓ создано заново:', created.start?.date);
+        } else {
+          errors++;
+          console.error('[ForcePush]   ✗ ошибка для:', task.text.slice(0,40));
+        }
+      }
+    } else {
+      // Новая задача без события — создать
+      const created = await gcalFetch(`${GCAL_API}/calendars/${calId}/events`,{
+        method:'POST',
+        body: JSON.stringify(eventData)
+      }).catch(()=>null);
+      if(created){
+        task.gcalEventId = created.id;
+        if(created.updated) task.lastModified = new Date(created.updated).getTime();
+        pushed++;
+      } else {
+        errors++;
+      }
+    }
+  }
+
+  saveTasks();
+  gcalSyncing = false;
+  render();
+
+  if(errors === 0){
+    gcalShowMsg(`⚡ Готово: обновлено ${pushed} задач в Calendar`,'ok');
+  } else {
+    gcalShowMsg(`⚡ Обновлено ${pushed}, ошибок ${errors} — смотри консоль`,'err');
+  }
+  console.log('[ForcePush] итого: pushed=', pushed, 'errors=', errors);
+}
+
 // ── SYNC ENGINE ──
 async function syncFull(){
   if(gcalSyncing) return;
@@ -1286,6 +1368,7 @@ async function syncFull(){
 
     const pulled = await gcalFetch(`${GCAL_API}/calendars/${calId}/events?${pullParams}`);
     const events = (pulled.items||[]).filter(e=>e.status!=='cancelled');
+    console.log('[GCal] PULL: fetched', events.length, 'events');
 
     // Build lookups
     const evById    = {};  // id → event
@@ -1310,6 +1393,10 @@ async function syncFull(){
         }
         const taskTs  = task.lastModified||task.createdAt||0;
         const eventTs = new Date(event.updated).getTime();
+        console.log('[GCal] PULL task:', task.text.slice(0,30),
+          '| taskTs:', new Date(taskTs).toISOString(),
+          '| eventTs:', new Date(eventTs).toISOString(),
+          '| calWins:', eventTs > taskTs);
         if(eventTs > taskTs){
           // Calendar is newer → apply to task
           applyEventToTask(task, event);
@@ -1346,29 +1433,42 @@ async function syncFull(){
 
       if(task.gcalEventId){
         const existingEv = evById[task.gcalEventId];
+        console.log('[GCal] PUSH task:', task.text.slice(0,30),
+          '| deadline:', task.deadline,
+          '| eventInWindow:', !!existingEv,
+          '| gcalEventId:', task.gcalEventId);
         if(existingEv){
           const eventTs = new Date(existingEv.updated).getTime();
+          console.log('[GCal]   taskTs:', new Date(taskTs).toISOString(),
+            '| eventTs:', new Date(eventTs).toISOString(),
+            '| willPatch:', taskTs >= eventTs && !!eventData);
           if(taskTs >= eventTs && eventData){
             // Task is newer → push update
-            await gcalFetch(`${GCAL_API}/calendars/${calId}/events/${task.gcalEventId}`,{
+            const patched = await gcalFetch(`${GCAL_API}/calendars/${calId}/events/${task.gcalEventId}`,{
               method:'PATCH',
               body:JSON.stringify(eventData)
-            }).catch(()=>{});
+            }).catch(e=>{ console.error('[GCal] PATCH error:', e); return null; });
+            if(patched?.updated) task.lastModified = new Date(patched.updated).getTime();
+            if(patched) console.log('[GCal]   PATCH OK → new date in Calendar:', patched.start?.date||patched.start?.dateTime);
           }
         } else {
           // Event not in pull window — try updating directly
           if(eventData){
-            const updated = await gcalFetch(`${GCAL_API}/calendars/${calId}/events/${task.gcalEventId}`,{
+            const patched = await gcalFetch(`${GCAL_API}/calendars/${calId}/events/${task.gcalEventId}`,{
               method:'PATCH',
               body:JSON.stringify(eventData)
-            }).catch(()=>null);
-            if(!updated && task.deadline){
+            }).catch(e=>{ console.error('[GCal] PATCH(out-of-window) error:', e); return null; });
+            if(patched?.updated) task.lastModified = new Date(patched.updated).getTime();
+            if(!patched && task.deadline){
               // Probably 404/gone — recreate
               const created = await gcalFetch(`${GCAL_API}/calendars/${calId}/events`,{
                 method:'POST',
                 body:JSON.stringify(eventData)
               }).catch(()=>null);
-              if(created) task.gcalEventId = created.id;
+              if(created){
+                task.gcalEventId = created.id;
+                if(created.updated) task.lastModified = new Date(created.updated).getTime();
+              }
             }
           }
         }
@@ -1378,7 +1478,10 @@ async function syncFull(){
           method:'POST',
           body:JSON.stringify(eventData)
         }).catch(()=>null);
-        if(created) task.gcalEventId = created.id;
+        if(created){
+          task.gcalEventId = created.id;
+          if(created.updated) task.lastModified = new Date(created.updated).getTime();
+        }
       }
     }
 
