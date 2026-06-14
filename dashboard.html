@@ -500,7 +500,7 @@ function sortedList(list, col){
 
 // ── DATE HELPERS ──
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
-function todayStr(){ return TODAY.toISOString().slice(0,10); }
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 function deadlineDt(dl, dlTime){
   // возвращает Date для дедлайна с учётом времени
@@ -511,6 +511,8 @@ function deadlineDt(dl, dlTime){
 function dateStatus(dl, compareTo, dlTime){
   // compareTo: 'YYYY-MM-DD' string or null (defaults to now/today)
   if(!dl) return null;
+  // Для всесуточных задач: 'today' если дата дедлайна = сегодня (без сравнения со временем)
+  if(!dlTime && !compareTo && dl === todayStr()) return 'today';
   const deadline = deadlineDt(dl, dlTime);
   let ref;
   if(compareTo){
@@ -997,7 +999,7 @@ function autoArchive(){
 
 // ── EXPORT / IMPORT ──
 function exportData(){
-  const date = new Date().toISOString().slice(0,10);
+  const _ed = new Date(); const date = `${_ed.getFullYear()}-${String(_ed.getMonth()+1).padStart(2,'0')}-${String(_ed.getDate()).padStart(2,'0')}`;
   const data = {
     version: 2,
     app: 'kanban-dashboard',
@@ -1087,7 +1089,7 @@ let gcalCalendars = [];    // list after auth
 function gcalAddDay(dateStr){
   const d = new Date(dateStr+'T00:00:00');
   d.setDate(d.getDate()+1);
-  return d.toISOString().slice(0,10);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function gcalAddHour(isoStr){
   const d = new Date(isoStr);
@@ -1095,10 +1097,19 @@ function gcalAddHour(isoStr){
   return d.toISOString();
 }
 function gcalWeekStart(){
-  // Monday 00:00:00 of current week
+  // Monday 00:00:00 of current week (local time)
   const d = new Date(); d.setHours(0,0,0,0);
   d.setDate(d.getDate() - ((d.getDay()||7) - 1));
   return d;
+}
+function gcalLocalISO(d){
+  // RFC3339 с локальным смещением таймзоны (вместо UTC toISOString)
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? '+' : '-';
+  const hh = String(Math.floor(Math.abs(off)/60)).padStart(2,'0');
+  const mm = String(Math.abs(off)%60).padStart(2,'0');
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` +
+    `T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}${sign}${hh}:${mm}`;
 }
 
 // ── AUTH ──
@@ -1360,8 +1371,8 @@ async function syncFull(){
 
     const pullParams = new URLSearchParams({
       singleEvents: 'true',
-      timeMin: weekStart.toISOString(),
-      timeMax: windowEnd.toISOString(),
+      timeMin: gcalLocalISO(weekStart),
+      timeMax: gcalLocalISO(windowEnd),
       maxResults: '500',
       fields: 'items(id,summary,description,start,end,status,updated,extendedProperties,attendees)'
     });
